@@ -1,0 +1,295 @@
+\documentclass{article}
+\usepackage[UTF8]{ctex}
+\usepackage{amsmath}
+\usepackage{xcolor}
+%opening
+\title{最大熵模型}
+\author{覃一发}
+
+\begin{document}
+	
+	\maketitle
+	
+	\begin{abstract}
+		本文介绍了最大熵原理的出发点、理论推导、算法伪代码以及样例演示结果。
+	\end{abstract}
+	
+	\section{最大熵原理}
+	    所谓最大熵，指的是在估计目标概率分布时，在满足约束条件前提下选取熵最大者。
+	
+	
+	\section{最大熵模型}
+	    X和Y是输入、输出集合。最大熵模型表示的是对于给定的输入$ x\in X $，输出条件概率$ p(y|x) $, $ y\in Y $。
+	
+	    给定数据集$ T=\{(x_{1}, y_{1}),(x_{1}, y_{1}),...,(x_{N}, y_{N})\} $。
+	
+	    联合分布$ p(x, y) $的经验分布, 边缘分布$ P(x) $的经验分布如下。$ v(x) $为数据集里输入量取值为x的样本个数，$ v(x,y) $同理。
+	\begin{equation}
+		\begin{aligned}
+			&\tilde{P}(x, y) = \frac{v(x,y)}{N} \\
+			&\tilde{P}(x) = \frac{v(x)}{N} 
+		\end{aligned}
+	\end{equation}
+	
+	    特征函数是以$x$和$y$为输入量的实值函数，用于对模型施加约束。该类函数通常输出0或1，但也可以是任意实数值。
+	\begin{equation}
+		f(x, y) = \left\{
+		\begin{aligned}
+			&1, if\quad x, y\quad satisfy\quad some\quad constrain\\
+			&0, else
+		\end{aligned}
+		\right.
+	\end{equation}
+	
+	    特征函数$ f(x,y) $关于经验分布,$ \tilde{P}(x, y) $的期望值如下。
+	\begin{equation}
+		E_{\tilde{P}}[f]=\sum_{x,y}\tilde{P}(x,y)f(x,y)
+	\end{equation}
+	
+	    特征函数$ f(x,y) $关于模型$ P(y|x) $和经验分布$ \tilde{P}(x) $的期望值如下。
+	\begin{equation}
+		E_{P}[f]=\sum_{x,y}\tilde{P}(x)P(y|x)f(x,y)
+	\end{equation}
+	
+	    如果模型$ P(y|x) $能够反映出训练数据中的分布规律，那么对于单个特征函数$f(x,y)$，$E_{\tilde{P}}[f]=E_{P}[f]$。
+	\begin{equation}
+		\sum_{x,y}\tilde{P}(x,y)f(x,y)=\sum_{x,y}\tilde{P}(x)P(y|x)f(x,y) \label{eq.ppconstraint}
+	\end{equation}
+	    如果有n个特征函数，那么就有n条如同公式\ref{eq.ppconstraint}的约束。
+	
+	    定义（最大熵模型）  假设满足所有约束条件的模型集合为
+	\begin{equation}
+		\mathcal{C}\equiv\{P\in\mathcal{P}|E_{\tilde{P}}[f]=E_{P}[f]\}
+	\end{equation}
+	    定义在条件概率分布$P(y|x)$上的条件熵如下。
+	\begin{equation}
+		H(P)\equiv-\sum_{x,y}\tilde{P}(x,y)\ln{P(y|x)}
+	\end{equation}
+	    则模型集合$ \mathcal{C} $中条件熵$ H(P)$最大的模型被称为最大熵模型。
+	
+	
+	\section{最大熵模型的学习}
+	    最大熵模型的学习过程即求解使条件熵最大的条件概率模型。可以形式化为最优化问题。使熵最大等价于负熵最小。最小化的形式是为了
+	符合最优化理论的习惯。
+	\begin{equation}
+		\min_{P\in\mathcal{C}} -H(P) = -\sum_{x,y}P(y|x)\ln{P(y|x)}
+	\end{equation}
+
+	\begin{equation}
+		\begin{aligned}
+			s.t. \quad& E_{\tilde{P}}[f_{i}]=E_{P}[f_{i}]\\
+			&\sum_{x}\tilde{P}(x)\sum_{y}P(y|x)=1
+		\end{aligned}
+    \end{equation}
+      	
+      	求解带约束的最小化问题，可以引进拉格朗日乘子$ \omega_{0}, \omega_{1},..., \omega_{n} $，定义拉格朗日函数$ L(P,\omega) $。这里$\omega_{0}$的约束写法和李航的《统计学习方法》不太一样，因为其实$\sum_{y}P(y|x)=1$不是1条约束而是多条约束，有多少个可取的$x$就有多少条约束，所以不能用一个权重分配给多条约束。
+	
+	\begin{equation}
+		\begin{aligned}
+		L(P,\omega) \equiv&-H(P)+\omega_{0}(1-\sum_{x}\tilde{P}(x)\sum_{y}P(y|x))+\sum_{i=1}^{n}\omega_{i}(E_{\tilde{P}}[f_{i}]-E_{P}[f_{i}])\\
+		=&\sum_{x,y}\tilde{P}(x)P(y|x)\ln{P(y|x)}+\omega_{0}(1-\sum_{x}\tilde{P}(x)\sum_{y}P(y|x))+\\
+		&\sum_{i=1}^{n}\omega_{i}(\sum_{x,y}\tilde{P}(x,y)f_{i}(x,y)-\sum_{x,y}\tilde{P}(x)P(y|x)f_{i}(x,y))	
+		\end{aligned}
+	\end{equation}\label{eq.Lagrange}
+
+       最优化的原始问题是Eq.\ref{eq.maxent.primitive}。
+   \begin{equation}
+   	  \min_{P\in\mathcal{C}}\max_{\omega}L(P, \omega) \label{eq.maxent.primitive}
+   \end{equation}
+       $\min\max$的形式可以保证不遵守约束的候选$L(P,\omega)$会导致$\max_{\omega}L(P,\omega)$中直接变成$+\infty$，而若遵守约束$\max_{\omega}L(P,\omega)$
+   仍为有限值，从而在$\min_{P\in\mathcal{C}}\max_{\omega}L(P,\omega)$中被“选中”。
+   
+       对偶问题如Eq.\ref{eq.maxent.dual}。
+   \begin{equation}
+   	  \max_{\omega}\min_{P\in\mathcal{C}}L(P, \omega) \label{eq.maxent.dual}
+   \end{equation}
+	    由于$L(P,\omega)$是P的凸函数，原始问题\ref{eq.maxent.primitive}的解等价于对偶问题公式\ref{eq.maxent.dual}的解。所以可以通过求解对偶问题来得到原始问题的解。
+	
+	    先求解对偶问题内部的极小化问题$\min_{P\in\mathcal{C}}L(P, \omega)$，相当于先固定住$\omega$而变化$P(y|x)$使得$L(P,\omega)$最小。
+	求$ \frac{\partial L(P, \omega)}{\partial P}$，令其为零。
+	\begin{equation}
+		\begin{aligned}
+			\frac{\partial L(P, \omega)}{\partial P} = &\tilde{P}(x)(1+\log{P(y|x)}) -\omega_{0}\tilde{P}(x) -\\
+			&\sum_{i=1}^{n}\omega_{i}\tilde{P}(x)f_{i}(x,y)\\
+			=&\tilde{P}(x)(1+\log{P(y|x)}-\omega_{0}-\sum_{i=1}^{n}\omega_{i}f_{i}(x,y))
+			=&0
+		\end{aligned}
+	\end{equation}
+
+       显然，由于$\tilde{P}(x)>0$，下边必然成立。
+       
+	\begin{equation}
+		1+\log{P(y|x)}-\omega_{0}-\sum_{i=1}^{n}\omega_{i}f_{i}(x,y)=0 
+	\end{equation}    
+	消掉对数符号，得到$P(y|x)$。
+	\begin{equation}
+	P(y|x) =  \frac{\exp(\sum_{i=1}^{n}\omega_{i}f_{i}(x,y))}{\exp{(1-\omega_{0})}}
+	\end{equation}    	
+	
+    	到目前为止，我们在约束中其实并没有充分体现$P(y|x)$是概率这一事实。既然是概率那么可以通过边际概率公式这“隐藏条件”来缩小求解空间。
+	\begin{equation}
+		\begin{aligned}
+			\sum_{y}P(y|x) =  &\frac{\sum_{y}\exp{(\sum_{i=1}^{n}\omega_{i}f_{i}(x,y))}}{\exp{(1-\omega_{0})}}
+			 =&1
+		\end{aligned}
+	\end{equation}
+        
+        容易得到下式。
+        
+	\begin{equation}
+		\exp{(1-\omega_{0})} = \sum_{y}\exp{(\sum_{i=1}^{n}\omega_{i}f_{i}(x,y))} 
+	\end{equation}
+	   
+	   那么使$L(P, \omega)$取极小值的解如下。
+	   
+	\begin{equation}
+		\begin{aligned}
+			&P_{\omega}(y|x) = \frac{\exp{(\sum_{i=1}^{n}\omega_{i}f_{i}(x,y))}}{Z_{\omega}} \\
+			&Z_{\omega} = \sum_{y}\exp{(\sum_{i=1}^{n}\omega_{i}f_{i}(x,y))} 
+		\end{aligned}
+	\end{equation}        		
+	  我们把$min_{P\in\mathcal{C}}L(P, \omega)$记为$\Psi(\omega)$
+	\begin{equation}
+		\begin{aligned}
+			\Psi(\omega) =&\sum_{x,y}\tilde{P}(x)P_{\omega}(y|x)\log{P_{\omega}(y|x)}+\textcolor{red}{\omega_{0}(\sum_{x}\tilde{P}(x)\sum_{y}P(y|x)-1)}+\\
+			&\sum_{i=1}^{n}\omega_{i}(\sum_{x,y}\tilde{P}(x,y)f_{i}(x,y)-\sum_{x,y}\tilde{P}(x)P_{\omega}(y|x)f_{i}(x,y))\\
+			=&\sum_{x,y}\tilde{P}(x)P_{\omega}(y|x)\log{P_{\omega}(y|x)}+\textcolor{red}{0}+\\ &\sum_{i=1}^{n}\omega_{i}(\sum_{x,y}\tilde{P}(x,y)f_{i}(x,y)-\sum_{x,y}\tilde{P}(x)P_{\omega}(y|x)f_{i}(x,y))\\
+			=&\textcolor{blue}{\sum_{x,y}\tilde{P}(x)P_{\omega}(y|x)(\sum_{i=1}^{n}\omega_{i}f_{i}(x,y)}-\log{Z_{\omega}})+\\
+			&\sum_{i=1}^{n}\omega_{i}(\sum_{x,y}\tilde{P}(x,y)f_{i}(x,y)-\textcolor{blue}{\sum_{x,y}\tilde{P}(x)P_{\omega}(y|x)f_{i}(x,y)})\\
+			=&\sum_{x,y}\tilde{P}(x)P_{\omega}(y|x)(-\log{Z_{\omega}})+\sum_{i=1}^{n}\omega_{i}(\sum_{x,y}\tilde{P}(x,y)f_{i}(x,y))\\	=&\sum_{x,y}\tilde{P}(x,y)\sum_{i}\omega_{i}f_{i}(x,y)-\sum_{x,y}\tilde{P}(x)P_{\omega}(y|x)\log{Z_{\omega}}	\\
+			=&\sum_{x,y}\tilde{P}(x,y)\sum_{i}\omega_{i}f_{i}(x,y)-\sum_{x}\tilde{P}(x)\log{Z_{\omega}}	\label{eq.psi_omega}
+		\end{aligned}
+	\end{equation}
+
+   由于在求解$P_{\omega}$过程中我们已经用掉了$\sum_{y}P(y|x)=1$这一隐藏条件，并且$\sum_{x}\tilde{P}(x)=1$，所以公式\ref{eq.psi_omega}中$\omega_{0}$项直接为0。
+   上式第二步利用了$\log{P_{\omega}(y|x)}=\sum_{i=1}^{n}\omega_{i}f_{i}(x,y)-\log{Z_{\omega}}$ 。第三步有抵消项。第六步同样利用了$\sum_{y}P_{\omega}(y|x)=1$。
+   
+   那么求解最大熵模型，现在就剩下寻找一组最优的$\omega$使得$\Psi(\omega)$最大。
+   
+   
+   \section{最大熵与最大似然}
+     最大熵模型具有和逻辑回归模型类似的形式，它们都属于广义线性模型。当条件概率模型采用公式\ref{eq.logistic}的形式时，利用最大似然策略得到的模型与最大熵模型是一致的。训练集经验分布为$\tilde{P}(x,y)$。
+   \begin{equation}
+   	P(y|x)=\frac{\exp{(\sum_{i}\omega_{i}f_{i}(x,y))}}{Z{\omega}} \label{eq.logistic}
+   \end{equation}
+   那么对数似然函数展开后如Eq.\ref{eq.logistic.mle}所示，与Eq.\ref{eq.psi_omega}一致。
+   \begin{equation}
+   		\begin{aligned}
+   			LogLikelihood(P(y|x))=&\log{\prod_{x,y}P(y|x)^{\tilde{P}(x,y)}}\\
+   			=&\sum_{x,y}\tilde{P}(x,y)\log{P(y|x)}\\
+   			=&\sum_{x,y}\tilde{P}(x,y)\sum_{i}\omega_{i}f_{i}(x,y)-\sum_{x,y}\tilde{P}(x,y)\log{Z_{\omega}}\\
+   			=&\sum_{x,y}\tilde{P}(x,y)\sum_{i}\omega_{i}f_{i}(x,y)-\sum_{x}\tilde{P}(x)\sum_{y}P(y|x)\log{Z_{\omega}}\\
+   			=&\sum_{x,y}\tilde{P}(x,y)\sum_{i}\omega_{i}f_{i}(x,y)-\sum_{x}\tilde{P}(x)\log{Z_{\omega}} \label{eq.logistic.mle}
+   		\end{aligned}
+   \end{equation}
+
+     求一组$\omega$使得对数似然函数最大化实质上和是对$\Psi(\omega)$最大化一样的。其背后的意义是最大熵模型寻找满足约束条件下，最平均最等可能最公正的模型，但同时也是在寻找与数据最像的逻辑斯特回归模型。
+   
+   \section{最大熵模型具体求解}
+   
+      最大熵模型求解可以通过梯度下降、牛顿法、拟牛顿法(BFP, BFGS)等进行求解，目标函数为$\Psi{(\omega)}$。也可以使用改进迭代尺度法(Improved Iterative Scaling, IIS)进行。本节主要介绍IIS方法。
+   \subsection{改进的迭代尺度法IIS}
+      
+      IIS的思路是根据现有权重向量$\boldmath{\omega}=\{\omega_{1}, ..., \omega_{n}\}$，找到一个新的修正向量$\boldmath{\omega+\delta}=\{\omega_{1}+\delta_{1}, ..., \omega_{n}+\delta_{n}\}$，使得模型的对数似然函数增大，重复以上步骤直至找到对数似然最大值。
+      
+%      \begin{equation}
+%      	\boldmath{\omega}=\{\omega_{1}, ..., \omega_{n}\}
+%      \end{equation}
+%     
+	  那么修正向量带来的似然函数增量$\Delta{L}$如下。
+	  \begin{equation}
+	  	\begin{aligned}
+	  		\Delta{L}=&L(P_{\omega},\omega+\delta)-L(P_{\omega}, \omega)\\
+	  		=&\sum_{x,y}\tilde{P}(x,y)\sum_{i}(\omega_{i}+\delta_{i})f_{i}(x,y)-\sum_{x}\tilde{P}(x)\log{Z_{\omega+\delta}}-\\
+	  		&\sum_{x,y}\tilde{P}(x,y)\sum_{i}\delta_{i}f_{i}(x,y)+\sum_{x}\tilde{P}(x)\log{Z_{\omega}}\\
+	  		=&\sum_{x,y}\tilde{P}(x,y)\sum_{i}\delta_{i}f_{i}(x,y)-\sum_{x}\tilde{P}(x)\log{\frac{Z_{\omega+\delta}}{Z_{\omega}}} \label{eq.delta.loglikelihood}
+	  	\end{aligned}
+	  \end{equation} 
+      
+      观察Eq.\ref{eq.delta.loglikelihood}，难点显然集中在第二项。该项实质上是对数的线性组合，那么可考虑相关不等式，例如不等式Eq.\ref{eq.ineq}。
+      
+      \begin{equation}
+      	-\log{\alpha}>1-\alpha \label{eq.ineq}
+      \end{equation}
+  
+      那么继续化简$\Delta{L}$。
+      
+	  \begin{equation}
+	  	\begin{aligned}
+			\Delta{L}>\sum_{x,y}\tilde{P}(x,y)\sum_{i}\delta_{i}f_{i}(x,y)+\sum_{x}\tilde{P}(x)(1-\frac{Z_{\omega+\delta}}{Z_{\omega}})\\
+		\end{aligned}
+	  \end{equation} 
+  
+      先化简$\frac{Z_{\omega+\delta}}{Z_{\omega}}$。
+      
+      \begin{equation}
+      	\begin{aligned}
+			\frac{Z_{\omega+\delta}}{Z_{\omega}}=&\frac{\sum_{y}\exp{\sum_{i}(\omega_{i}+\delta_{i})f_{i}(x,y)}}{\sum_{y}\exp{\sum_{i}\omega_{i}f_{i}(x,y)}}\\
+			=&\sum_{y}\frac{\exp{\sum_{i}(\omega_{i}+\delta_{i})f_{i}(x,y)}}{\sum_{y}\exp{\sum_{i}\omega_{i}f_{i}(x,y)}}\\
+			=&\sum_{y}\frac{\exp{\sum_{i}\omega_{i}f_{i}(x,y)}}{\sum_{y}\exp{\sum_{i}\omega_{i}f_{i}(x,y)}}\exp{\sum_{i}\delta_{i}f_{i}(x,y)}\\
+			=&\sum_{y}P_{\omega}(y|x)\exp{\sum_{i}\delta_{i}f_{i}(x,y)}
+      	\end{aligned}     	
+      \end{equation}
+  
+      回到$\Delta{L}$。
+      
+	  \begin{equation}
+		\begin{aligned}
+			\Delta{L}&>\sum_{x,y}\tilde{P}(x,y)\sum_{i}\delta_{i}f_{i}(x,y)+\sum_{x}\tilde{P}(x)(1-\frac{Z_{\omega+\delta}}{Z_{\omega}})\\
+			&=\sum_{x,y}\tilde{P}(x,y)\sum_{i}\delta_{i}f_{i}(x,y)+\sum_{x}\tilde{P}(x)(1-\sum_{y}P_{\omega}(y|x)\exp{\sum_{i}\delta_{i}f_{i}(x,y)})\\
+			&=\sum_{x,y}\tilde{P}(x,y)\sum_{i}\delta_{i}f_{i}(x,y)+1-\sum_{x}\tilde{P}(x)\sum_{y}P_{\omega}(y|x)\exp{\sum_{i}\delta_{i}f_{i}(x,y)}\\ \label{eq.delta.loglikelihood.simple}
+		\end{aligned}
+	  \end{equation} 
+  
+      这里我们得到了$\Delta{L}$的下界，记为$A(\delta|\omega)$。
+      
+      \begin{equation}
+      	A(\delta|\omega)=\sum_{x,y}\tilde{P}(x,y)\sum_{i}\delta_{i}f_{i}(x,y)+1-\sum_{x}\tilde{P}(x)\sum_{y}P_{\omega}(y|x)\exp{\sum_{i}\delta_{i}f_{i}(x,y)}
+      \end{equation}
+      
+      似乎到这里再一次卡住了，能否再用一次不等式呢？记$f^{\#}(x,y)=\sum_{i}f_{i}(x,y)$，意义是点(x,y)在所有特征函数中的响应程度（有多少特征函数搭理它）。代入Eq.\ref{eq.delta.loglikelihood.simple}，得到下边式子。
+      
+	  \begin{equation}
+		\begin{aligned}
+			\Delta{L}&>A(\delta|\omega)\\ 
+			&=\sum_{x,y}\tilde{P}(x,y)\sum_{i}\delta_{i}f_{i}(x,y)+1-\sum_{x}\tilde{P}(x)\sum_{y}P_{\omega}(y|x)\exp{(\sum_{i}\frac{f_{i}(x,y)}{f^{\#}(x,y)}\delta_{i}f^{\#}(x,y))}\\
+			&>\sum_{x,y}\tilde{P}(x,y)\sum_{i}\delta_{i}f_{i}(x,y)+1-\sum_{x}\tilde{P}(x)\sum_{y}P_{\omega}(y|x)\sum_{i}(\frac{f_{i}(x,y)}{f^{\#}(x,y)}\exp{(\delta_{i}f^{\#}(x,y))})\\
+			 \label{eq.delta.loglikelihood.simple2}
+		\end{aligned}
+	 \end{equation}       
+     
+     得到了下界的下界，记为$B(\delta|\omega)$。为了使其最大化，我们让$B(\delta|\omega)$对$\delta_{i}$求导，使导数为0，得到Eq.\ref{eq.partial_B}。
+	 
+	 \begin{equation}
+		\begin{aligned}
+			B(\delta|\omega)
+			=\sum_{x,y}\tilde{P}(x,y)\sum_{i}\delta_{i}f_{i}(x,y)+1-
+			\sum_{x}\tilde{P}(x)\sum_{y}P_{\omega}(y|x)\sum_{i}(\frac{f_{i}(x,y)}{f^{\#}(x,y)}\exp{(\delta_{i}f^{\#}(x,y))})\\
+		\end{aligned}     
+     \end{equation}
+
+	\begin{equation}
+	  \begin{aligned}
+	  \frac{\partial{B(\delta|\omega)}}{\partial{\delta_{i}}}=&\sum_{x,y}\tilde{P}(x,y)f_{i}(x,y)-\sum_{x,y}\tilde{P}(x)P_{\omega}(y|x)f_{i}(x,y)\exp{(\delta_{i}f^{\#}(x,y))}\\
+			=&0 \label{eq.partial_B}
+		\end{aligned}   
+	\end{equation}  
+  
+     如果对于任意$(x,y)$都有$f^{\#}(x,y)=C$，即同样的常数，那么公式Eq.\ref{eq.partial_B}实际上可以写成如下。该公式的意义是权重参数的改变量正比与经验分布于模型分布之比的对数，即如果某特征函数的模型分布期望值低于经验分布，那么增大其权重参数。11
+     
+	\begin{equation}
+		\begin{aligned}
+			&E_{\tilde{P}}[f_{i}]=E_{P}[f_{i}]exp(\delta_{i}M) \\
+			&\delta_{i}=\frac{1}{C}\log\frac{E_{\tilde{P}}[f_{i}]}{E_{P}[f_{i}]}
+		\end{aligned}
+	\end{equation}
+
+    如果该条件不成立，那么可以使用牛顿法来求解Eq.\ref{eq.partial_B}。记$g(\delta_{i})$为新下界$B(\delta|\omega)$的梯度，那么$\delta_{i}$的改变量乘以现有梯度的梯度后应该能够和现有梯度大小相同，方向相反。这正是牛顿法的思路--自变量应该朝着梯度消失的方向去增加。
+    \begin{equation}
+    	{\delta_{i}^{(k+1)}}-{\delta_{i}^{(k)}}=-\frac{g(\delta_{i}^{k})}{g^{'}(\delta_{i}^{k})}
+    \end{equation}
+
+     IIS通过最大化参数微调后与微调前的增量，来推动模型参数的估计；增量不方便最大化，则最大化其下界，甚至下界的下界。这一通过下界、上界来实现优化目的，把困难问题用更简单问题进行近似的思路，非常值得反复体会。
+      
+   
+\end{document}
